@@ -29,6 +29,9 @@ resource "aws_api_gateway_deployment" "deployment" {
 }
 
 resource "aws_api_gateway_base_path_mapping" "domain" {
+  depends_on = [
+    aws_api_gateway_deployment.deployment
+  ]
   count = length(var.functions) > 0 ? 1 : 0
   api_id = aws_api_gateway_rest_api.api.id
   domain_name = aws_api_gateway_domain_name.domain.domain_name
@@ -50,7 +53,6 @@ resource "aws_api_gateway_method" "request_method" {
   http_method = "ANY"
   authorization = "NONE"
 }
-
 
 resource "aws_api_gateway_method" "request_method_root" {
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -101,7 +103,6 @@ resource "aws_api_gateway_integration_response" "response_method_integration" {
   }
 }
 
-
 resource "aws_api_gateway_integration_response" "response_method_integration_root" {
   for_each = var.functions
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -117,7 +118,8 @@ data "aws_iam_policy_document" "lambda" {
   version = "2012-10-17"
   statement {
     principals {
-      identifiers = ["lambda.amazonaws.com"]
+      identifiers = [
+        "lambda.amazonaws.com"]
       type = "Service"
     }
     actions = [
@@ -128,7 +130,7 @@ data "aws_iam_policy_document" "lambda" {
 
 resource "aws_iam_role" "lambda" {
   for_each = var.functions
-  name = join("", concat(["Lambda"], [ for element in split("_", each.key): title(lower(element)) ]))
+  name = join("", concat(["Lambda"], [for element in split("_", each.key): title(lower(element))]))
   description = each.value["description"]
   assume_role_policy = data.aws_iam_policy_document.lambda.json
 }
